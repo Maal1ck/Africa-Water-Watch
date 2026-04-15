@@ -43,6 +43,7 @@ export class WaterQualityService {
       return {
         turbidity: { mean: 0, median: 0, stdDev: 0, min: 0, max: 0 },
         chlorophyll: { mean: 0, median: 0, stdDev: 0, min: 0, max: 0 },
+        surfaceArea: { mean: 0, median: 0, stdDev: 0, min: 0, max: 0 },
         count: 0
       };
     }
@@ -50,6 +51,7 @@ export class WaterQualityService {
     return {
       turbidity: this.calculateMetricStats(data.map(d => d.turbidity)),
       chlorophyll: this.calculateMetricStats(data.map(d => d.chlorophyll)),
+      surfaceArea: this.calculateMetricStats(data.map(d => d.surfaceArea || 0)),
       count: data.length
     };
   }

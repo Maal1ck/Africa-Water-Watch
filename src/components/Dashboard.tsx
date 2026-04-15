@@ -44,7 +44,7 @@ export default function Dashboard({ data, stats }: DashboardProps) {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <MetricCard 
           title="Current Turbidity" 
           value={latest?.turbidity || 0} 
@@ -60,6 +60,12 @@ export default function Dashboard({ data, stats }: DashboardProps) {
           icon={Leaf}
           status={latest?.chlorophyllStatus}
           statusColor={getChlorophyllStatusColor(latest?.chlorophyllStatus || '')}
+        />
+        <MetricCard 
+          title="Surface Area" 
+          value={latest?.surfaceArea || 0} 
+          unit="ha" 
+          icon={Activity}
         />
         <MetricCard 
           title="Mean Turbidity" 
@@ -96,29 +102,37 @@ export default function Dashboard({ data, stats }: DashboardProps) {
                     <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3}/>
                     <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
                   </linearGradient>
+                  <linearGradient id="colorArea" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#a855f7" stopOpacity={0}/>
+                  </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                 <XAxis 
                   dataKey="date" 
-                  stroke="#64748b" 
+                  stroke="#94a3b8" 
                   fontSize={10} 
-                  tickLine={false} 
+                  tickLine={false}
                   axisLine={false}
-                  tickFormatter={(val) => val.split('-').slice(1).join('/')}
+                  tickFormatter={(val) => {
+                    if (!val) return '';
+                    const parts = val.split('-');
+                    if (parts.length >= 3) {
+                      return `${parts[1]}/${parts[2]}`;
+                    }
+                    return val;
+                  }}
                 />
-                <YAxis 
-                  stroke="#64748b" 
-                  fontSize={10} 
-                  tickLine={false} 
-                  axisLine={false}
-                />
+                <YAxis yAxisId="left" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis yAxisId="right" orientation="right" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '4px', fontSize: '12px' }}
+                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', fontSize: '12px' }}
                   itemStyle={{ color: '#f8fafc' }}
                 />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#8E9299' }} />
-                <Area type="monotone" dataKey="turbidity" name="Turbidity (NTU)" stroke="#0ea5e9" fillOpacity={1} fill="url(#colorTurbidity)" strokeWidth={2} />
-                <Area type="monotone" dataKey="chlorophyll" name="Chlorophyll Index" stroke="#22c55e" fillOpacity={1} fill="url(#colorChlorophyll)" strokeWidth={2} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+                <Area yAxisId="left" type="monotone" dataKey="turbidity" name="Turbidity (NTU)" stroke="#0ea5e9" strokeWidth={2} fillOpacity={1} fill="url(#colorTurbidity)" />
+                <Area yAxisId="left" type="monotone" dataKey="chlorophyll" name="Chlorophyll" stroke="#22c55e" strokeWidth={2} fillOpacity={1} fill="url(#colorChlorophyll)" />
+                <Area yAxisId="right" type="monotone" dataKey="surfaceArea" name="Surface Area (ha)" stroke="#a855f7" strokeWidth={2} fillOpacity={1} fill="url(#colorArea)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>

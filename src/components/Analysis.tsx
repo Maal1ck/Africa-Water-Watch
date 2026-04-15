@@ -20,12 +20,14 @@ export default function Analysis({ data, stats }: AnalysisProps) {
     if (existing) {
       existing.turbiditySum += curr.turbidity;
       existing.chlorophyllSum += curr.chlorophyll;
+      existing.surfaceAreaSum += (curr.surfaceArea || 0);
       existing.count += 1;
     } else {
       acc.push({ 
         name: monthName, 
         turbiditySum: curr.turbidity, 
         chlorophyllSum: curr.chlorophyll, 
+        surfaceAreaSum: (curr.surfaceArea || 0),
         count: 1 
       });
     }
@@ -33,7 +35,8 @@ export default function Analysis({ data, stats }: AnalysisProps) {
   }, []).map(m => ({ 
     name: m.name,
     turbidityAvg: Number((m.turbiditySum / m.count).toFixed(2)),
-    chlorophyllAvg: Number((m.chlorophyllSum / m.count).toFixed(2))
+    chlorophyllAvg: Number((m.chlorophyllSum / m.count).toFixed(2)),
+    surfaceAreaAvg: Number((m.surfaceAreaSum / m.count).toFixed(2))
   }));
 
   const statusCounts = data.reduce((acc: any, curr) => {

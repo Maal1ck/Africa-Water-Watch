@@ -5,6 +5,7 @@ export interface WaterQualityData {
   date: string;
   turbidity: number;
   chlorophyll: number;
+  surfaceArea: number; // in hectares
   turbidityStatus: TurbidityStatus;
   chlorophyllStatus: ChlorophyllStatus;
   anomaly?: boolean;
@@ -33,5 +34,6 @@ export interface MetricStats {
 export interface AnalysisStats {
   turbidity: MetricStats;
   chlorophyll: MetricStats;
+  surfaceArea: MetricStats;
   count: number;
 }

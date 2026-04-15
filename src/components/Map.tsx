@@ -4,7 +4,7 @@ import { EditControl } from 'react-leaflet-draw';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
-import { Map as MapIcon } from 'lucide-react';
+import { Map as MapIcon, Eye, EyeOff } from 'lucide-react';
 import { AOI } from '../types';
 
 // Fix Leaflet icon issue
@@ -38,23 +38,18 @@ function MapUpdater({ aoi }: { aoi: AOI | null }) {
 export default function Map({ aoi, setAoi, mapLayerUrl, mapLayerType, setMapLayerType }: MapProps) {
   const [mapType, setMapType] = useState<'osm' | 'satellite'>('satellite');
   const [dismissPrompt, setDismissPrompt] = useState(false);
+  const [isLayerVisible, setIsLayerVisible] = useState(true);
 
   const onCreated = (e: any) => {
     const { layerType, layer } = e;
     if (layerType === 'polygon' || layerType === 'rectangle') {
-      const latlngs = layer.getLatLngs()[0];
-      const coordinates = latlngs.map((ll: any) => [ll.lng, ll.lat]);
-      // Close the polygon
-      coordinates.push(coordinates[0]);
+      const geojson = layer.toGeoJSON();
       
       const newAoi: AOI = {
         type: 'Feature',
-        geometry: {
-          type: 'Polygon',
-          coordinates: [coordinates]
-        },
+        geometry: geojson.geometry,
         properties: {
-          area: L.GeometryUtil.geodesicArea(latlngs)
+          area: L.GeometryUtil.geodesicArea(layer.getLatLngs()[0])
         }
       };
       setAoi(newAoi);
@@ -63,6 +58,32 @@ export default function Map({ aoi, setAoi, mapLayerUrl, mapLayerType, setMapLaye
       // to prevent duplicate polygons on the map
       layer.remove();
     }
+  };
+
+  const renderLegend = () => {
+    if (!mapLayerUrl || !isLayerVisible) return null;
+    
+    if (mapLayerType === 'chlorophyll') {
+      return (
+        <div className="mt-3 px-1">
+          <div className="flex justify-between text-[10px] text-app-muted mb-1 font-mono">
+            <span>Low</span>
+            <span>High</span>
+          </div>
+          <div className="h-2 w-full rounded-full bg-gradient-to-r from-[#0000ff] via-[#00ff00] to-[#ff0000]"></div>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="mt-3 px-1">
+        <div className="flex justify-between text-[10px] text-app-muted mb-1 font-mono">
+          <span>Clear</span>
+          <span>Turbid</span>
+        </div>
+        <div className="h-2 w-full rounded-full bg-gradient-to-r from-[#000080] via-[#00ffff] to-[#ff00ff]"></div>
+      </div>
+    );
   };
 
   return (
@@ -134,7 +155,7 @@ export default function Map({ aoi, setAoi, mapLayerUrl, mapLayerType, setMapLaye
           />
         </FeatureGroup>
 
-        {mapLayerUrl && (
+        {mapLayerUrl && isLayerVisible && (
           <TileLayer
             url={mapLayerUrl}
             opacity={0.8}
@@ -145,7 +166,7 @@ export default function Map({ aoi, setAoi, mapLayerUrl, mapLayerType, setMapLaye
         {aoi && (
           <Polygon
             positions={(aoi.geometry.coordinates[0] as [number, number][]).map(c => [c[1], c[0]])}
-            pathOptions={{ color: '#3b82f6', fillOpacity: mapLayerUrl ? 0 : 0.2, weight: 2 }}
+            pathOptions={{ color: '#3b82f6', fillOpacity: (mapLayerUrl && isLayerVisible) ? 0 : 0.2, weight: 2 }}
           />
         )}
 
@@ -170,12 +191,22 @@ export default function Map({ aoi, setAoi, mapLayerUrl, mapLayerType, setMapLaye
       )}
 
       {mapLayerUrl && (
-        <div className="absolute bottom-6 right-6 z-[1000] bg-[#151619]/90 backdrop-blur-md border border-[#2a2b2e] p-3 rounded-xl shadow-2xl flex flex-col gap-2">
-          <div className="text-xs font-semibold text-app-muted uppercase tracking-wider mb-1">Map Layer</div>
+        <div className="absolute bottom-6 right-6 z-[1000] bg-[#151619]/90 backdrop-blur-md border border-[#2a2b2e] p-4 rounded-xl shadow-2xl flex flex-col gap-3 min-w-[200px]">
+          <div className="flex items-center justify-between">
+            <div className="text-xs font-semibold text-app-muted uppercase tracking-wider">Map Layer</div>
+            <button 
+              onClick={() => setIsLayerVisible(!isLayerVisible)}
+              className="text-app-muted hover:text-app-text transition-colors"
+              title={isLayerVisible ? "Hide Layer" : "Show Layer"}
+            >
+              {isLayerVisible ? <Eye size={16} /> : <EyeOff size={16} />}
+            </button>
+          </div>
+          
           <div className="flex bg-[#0b0c0e] rounded-lg p-1">
             <button
               onClick={() => setMapLayerType('turbidity')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                 mapLayerType === 'turbidity' 
                   ? 'bg-blue-500/20 text-blue-400' 
                   : 'text-app-muted hover:text-app-text'
@@ -185,7 +216,7 @@ export default function Map({ aoi, setAoi, mapLayerUrl, mapLayerType, setMapLaye
             </button>
             <button
               onClick={() => setMapLayerType('chlorophyll')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
                 mapLayerType === 'chlorophyll' 
                   ? 'bg-green-500/20 text-green-400' 
                   : 'text-app-muted hover:text-app-text'
@@ -194,6 +225,8 @@ export default function Map({ aoi, setAoi, mapLayerUrl, mapLayerType, setMapLaye
               Chlorophyll
             </button>
           </div>
+          
+          {renderLegend()}
         </div>
       )}
     </div>

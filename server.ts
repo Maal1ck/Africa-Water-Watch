@@ -181,20 +181,29 @@ app.post('/api/analyze', async (req, res) => {
     const waterQualityCol = s2.map((img: any) => {
       const ndti = img.normalizedDifference(['B4', 'B3']).rename('turbidity');
       const ndci = img.normalizedDifference(['B5', 'B4']).rename('chlorophyll');
-      return img.addBands([ndti, ndci]).select(['turbidity', 'chlorophyll']).set('date', img.date().format('YYYY-MM-dd'));
+      const ndwi = img.normalizedDifference(['B3', 'B8']);
+      const waterArea = ndwi.gt(0).multiply(ee.Image.pixelArea()).rename('surfaceArea');
+      return img.addBands([ndti, ndci, waterArea]).select(['turbidity', 'chlorophyll', 'surfaceArea']).set('date', img.date().format('YYYY-MM-dd'));
     });
 
     const timeSeries = waterQualityCol.map((img: any) => {
-      const stats = img.reduceRegion({
+      const meanStats = img.select(['turbidity', 'chlorophyll']).reduceRegion({
         reducer: ee.Reducer.mean(),
+        geometry: region,
+        scale: 20,
+        maxPixels: 1e9
+      });
+      const areaStats = img.select(['surfaceArea']).reduceRegion({
+        reducer: ee.Reducer.sum(),
         geometry: region,
         scale: 20,
         maxPixels: 1e9
       });
       return ee.Feature(null, {
         date: img.get('date'),
-        turbidity: stats.get('turbidity'),
-        chlorophyll: stats.get('chlorophyll')
+        turbidity: meanStats.get('turbidity'),
+        chlorophyll: meanStats.get('chlorophyll'),
+        surfaceArea: areaStats.get('surfaceArea')
       });
     });
 
@@ -210,9 +219,11 @@ app.post('/api/analyze', async (req, res) => {
       .map((f: any) => {
         const tVal = f.properties.turbidity;
         const cVal = f.properties.chlorophyll;
+        const sVal = f.properties.surfaceArea;
         
         const scaledTurbidity = Number(((tVal + 1) * 50).toFixed(2));
         const scaledChlorophyll = Number(((cVal + 1) * 50).toFixed(2));
+        const surfaceAreaHa = sVal ? Number((sVal / 10000).toFixed(2)) : 0; // Convert sq meters to hectares
         
         let tStatus = 'Clear';
         if (scaledTurbidity > 60) tStatus = 'Very Turbid';
@@ -227,6 +238,7 @@ app.post('/api/analyze', async (req, res) => {
           date: f.properties.date,
           turbidity: scaledTurbidity,
           chlorophyll: scaledChlorophyll,
+          surfaceArea: surfaceAreaHa,
           turbidityStatus: tStatus,
           chlorophyllStatus: cStatus,
           anomaly: scaledTurbidity > 70 || scaledChlorophyll > 70
