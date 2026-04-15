@@ -1,0 +1,6 @@
+{
+  "name": "Africa Water Turbidity GIS",
+  "description": "A professional GIS application for analyzing water turbidity using satellite imagery and NDTI analysis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
